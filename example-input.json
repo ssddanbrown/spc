@@ -1,0 +1,14 @@
+{
+    "parse": "cat",
+    "checks": [
+        "Dan Brown",
+        "Haste",
+        "ssddanbrown",
+        "<p>"
+    ],
+    "urls": [
+        "https://danb.me",
+        "https://example.com",
+        "https://github.com/ssddanbrown/haste"
+    ]
+}
