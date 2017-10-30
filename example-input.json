@@ -1,11 +1,7 @@
 {
-    "parse": "cat",
-    "checks": [
-        "Dan Brown",
-        "Haste",
-        "ssddanbrown",
-        "<p>"
-    ],
+    "checks": {
+        ".*\\.me": "Dan"
+    },
     "urls": [
         "https://danb.me",
         "https://example.com",

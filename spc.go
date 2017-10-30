@@ -8,13 +8,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"sync"
 )
 
 type definition struct {
-	Parse  string   `json:"parse"`
-	Checks []string `json:"checks"`
-	URLs   []string `json:"urls"`
+	Checks map[string]string `json:"checks"`
+	URLs   []string          `json:"urls"`
 }
 
 type check struct {
@@ -24,7 +24,7 @@ type check struct {
 }
 
 // TODO - Improve struct/prop names
-// TODO - Convert checks into map[regex][]string
+// TODO - Show URL's that weren't checked
 
 func main() {
 
@@ -39,15 +39,24 @@ func main() {
 
 	// Create check instances grouped by URL
 	checkMap := make(map[string][]*check)
-	for _, url := range def.URLs {
-		for _, dCheck := range def.Checks {
-			c := check{
-				URL:    url,
-				Check:  dCheck,
-				Passed: false,
-			}
-			checkMap[url] = append(checkMap[url], &c)
+	checkCount := 0
+	for checkRegex, checkStr := range def.Checks {
+		r, rErr := regexp.Compile(checkRegex)
+		if rErr != nil {
+			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkRegex, rErr.Error()))
 		}
+		for _, url := range def.URLs {
+			if r.Match([]byte(url)) {
+				c := check{
+					URL:    url,
+					Check:  checkStr,
+					Passed: false,
+				}
+				checkMap[url] = append(checkMap[url], &c)
+				checkCount++
+			}
+		}
+
 	}
 
 	var wg sync.WaitGroup
@@ -57,7 +66,7 @@ func main() {
 		go checkSite(k, v, &wg)
 	}
 
-	fmt.Printf("\n\x1b[34mChecking %d urls against %d checks\x1b[0m\n\n", len(def.URLs), len(def.Checks))
+	fmt.Printf("\n\x1b[34mChecking %d urls, %d checks\x1b[0m\n\n", len(def.URLs), checkCount)
 
 	wg.Wait()
 
@@ -95,10 +104,17 @@ func main() {
 func checkSite(url string, checks []*check, wg *sync.WaitGroup) {
 	defer wg.Done()
 	res, err := http.Get(url)
+	if err != nil {
+		// TODO - Add error message to check
+		fmt.Println(err.Error())
+		return
+	}
+
 	html, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
 		// TODO - Add error message to check
+		fmt.Println(err.Error())
 		return
 	}
 
@@ -108,9 +124,22 @@ func checkSite(url string, checks []*check, wg *sync.WaitGroup) {
 }
 
 func loadDefinition(path string) definition {
-	defContent, err := ioutil.ReadFile(path)
+	var err error
+	var defContent []byte
+
+	if len(path) < 300 {
+		defContent, err = ioutil.ReadFile(path)
+	} else {
+		defContent = []byte(path)
+	}
+
 	if err != nil {
-		errorAndExit("Error when reading definition: " + err.Error())
+		// Try using first argument as definition if json-looking
+		if os.IsNotExist(err) && path[0] == '{' {
+			defContent = []byte(path)
+		} else {
+			errorAndExit("Error when reading definition\n" + err.Error())
+		}
 	}
 
 	var def definition
