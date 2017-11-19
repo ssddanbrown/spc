@@ -6,7 +6,7 @@ This is a simple go application to check live HTTP content against simple text c
 
 ### Usage
 
-Execute the program from the commandline, Either Passing in a definition file as the first argument or providing the definition JSON directly as the first arg.
+Execute the program from the command line, Either Passing in a definition file as the first argument or providing the definition JSON directly as the first arg. Alternatively, If no arguments are provided the definition file can be provided via stdin. 
 
 ```bash
 # File usage
@@ -17,6 +17,9 @@ Execute the program from the commandline, Either Passing in a definition file as
 
 # Arg usage
 ./spc "{<json_content>}"
+
+# stdin usage
+cat example-input.json | ./spc
 ```
 
 ### Definition File
@@ -40,4 +43,16 @@ The definition file is a json formatted file as the below example:
 
 The `checks` object keys are regex strings that will be checked against the URL. If the regex matches the URL the check content, provided as the value, will be search in the response content.  
 The checks can be either a string or an array of strings to check against.
-Any regex matches within the url regex can be inserted into a check using `$1` style placeholders. 
+Any regex matches within the url regex can be inserted into a check using `$1` style placeholders.
+
+### Docker Container
+
+A lightweight docker container can be found at https://hub.docker.com/r/ssddanbrown/spc/. This is mainly for usage on CI systems such as GitLab CI. The binary can be found at the path `/spc` of the container.
+
+If you are using the container normally via the command line, The easier way to do this is via piping:
+
+```bash
+cat example-input.json | docker run -i ssddanbrown/spc:latest
+```
+
+

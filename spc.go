@@ -77,11 +77,7 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 
-	if len(args) < 1 {
-		errorAndExit("No definition file provided")
-	}
-
-	def := loadDefinition(args[0])
+	def := loadDefinition(args)
 
 	// Create check instances grouped by URL
 	checkMap := make(map[string][]*check)
@@ -180,14 +176,27 @@ func checkSite(url string, checks []*check, wg *sync.WaitGroup) {
 	}
 }
 
-func loadDefinition(path string) definition {
+func loadDefinition(args []string) definition {
 	var err error
 	var defContent []byte
+	if len(args) == 0 {
+		args = append(args, "")
+	}
 
-	if len(path) < 300 {
-		defContent, err = ioutil.ReadFile(path)
+	path := args[0]
+
+	if path == "" {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			errorAndExit("No definition file provided")
+		}
+		defContent, err = ioutil.ReadAll(os.Stdin)
 	} else {
-		defContent = []byte(path)
+		if len(path) < 300 {
+			defContent, err = ioutil.ReadFile(path)
+		} else {
+			defContent = []byte(path)
+		}
 	}
 
 	if err != nil {
