@@ -12,9 +12,54 @@ import (
 	"sync"
 )
 
+type checkDefinitionList struct {
+	CheckDefinitions []checkDefinition
+}
+
+func (l *checkDefinitionList) UnmarshalJSON(data []byte) error {
+	var temp interface{}
+
+	err := json.Unmarshal(data, &temp)
+	if err != nil {
+		return err
+	}
+
+	checkMap := temp.(map[string]interface{})
+
+	for k, v := range checkMap {
+		var cd checkDefinition
+		cd.URLRegex = k
+
+		// If just a string add to checks
+		if cs, ok := v.(string); ok {
+			cd.ChecksStrings = append(cd.ChecksStrings, cs)
+		}
+
+		// If an array of strings loop through and add the checks
+		if css, ok := v.([]interface{}); ok {
+			for _, s := range css {
+				if cs, ok := s.(string); ok {
+					cd.ChecksStrings = append(cd.ChecksStrings, cs)
+				}
+			}
+		}
+
+		if len(cd.ChecksStrings) > 0 {
+			l.CheckDefinitions = append(l.CheckDefinitions, cd)
+		}
+	}
+
+	return err
+}
+
+type checkDefinition struct {
+	URLRegex      string
+	ChecksStrings []string
+}
+
 type definition struct {
-	Checks map[string]string `json:"checks"`
-	URLs   []string          `json:"urls"`
+	Checks checkDefinitionList `json:"checks"`
+	URLs   []string            `json:"urls"`
 }
 
 type check struct {
@@ -40,19 +85,22 @@ func main() {
 	// Create check instances grouped by URL
 	checkMap := make(map[string][]*check)
 	checkCount := 0
-	for checkRegex, checkStr := range def.Checks {
-		r, rErr := regexp.Compile(checkRegex)
+
+	for _, checkDef := range def.Checks.CheckDefinitions {
+		r, rErr := regexp.Compile(checkDef.URLRegex)
 		if rErr != nil {
-			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkRegex, rErr.Error()))
+			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
 		}
 		for _, url := range def.URLs {
 			if r.Match([]byte(url)) {
-				c := check{
-					URL:    url,
-					Check:  checkStr,
-					Passed: false,
+				for _, checkStr := range checkDef.ChecksStrings {
+					c := check{
+						URL:    url,
+						Check:  checkStr,
+						Passed: false,
+					}
+					checkMap[url] = append(checkMap[url], &c)
 				}
-				checkMap[url] = append(checkMap[url], &c)
 				checkCount++
 			}
 		}

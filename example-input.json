@@ -1,6 +1,7 @@
 {
     "checks": {
-        ".*\\.me": "Dan"
+        ".*\\.me": "Dan",
+        "danb": ["Dan", "Brown"]
     },
     "urls": [
         "https://danb.me",
