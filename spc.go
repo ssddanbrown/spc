@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -92,8 +93,16 @@ func main() {
 			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
 		}
 		for _, url := range def.URLs {
-			if r.Match([]byte(url)) {
+			matches := r.FindStringSubmatch(url)
+			if len(matches) > 0 {
 				for _, checkStr := range checkDef.ChecksStrings {
+
+					// Perform any applicable regex replaces in string
+					for i, submatch := range matches {
+						placeholder := fmt.Sprintf("$%d", i)
+						checkStr = strings.Replace(checkStr, placeholder, submatch, -1)
+					}
+
 					c := check{
 						URL:    url,
 						Check:  checkStr,

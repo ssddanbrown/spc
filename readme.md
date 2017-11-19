@@ -26,7 +26,9 @@ The definition file is a json formatted file as the below example:
 ```json
 {
     "checks": {
-        ".*\\.me": "Dan"
+        ".*\\.me": "Dan",
+        "danb": ["Dan", "Brown"],
+        "//(.*?)\\.com": "welcome to $1"
     },
     "urls": [
         "https://danb.me",
@@ -36,4 +38,5 @@ The definition file is a json formatted file as the below example:
 }
 ```
 
-The `checks` object keys are regex strings that will be checked against the URL. If the regex matches the URL the check content, provided as the value, will be search in the response content.   
+The `checks` object keys are regex strings that will be checked against the URL. If the regex matches the URL the check content, provided as the value, will be search in the response content.  
+The checks can be either a string or an array of strings to check against.
