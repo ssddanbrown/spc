@@ -40,3 +40,4 @@ The definition file is a json formatted file as the below example:
 
 The `checks` object keys are regex strings that will be checked against the URL. If the regex matches the URL the check content, provided as the value, will be search in the response content.  
 The checks can be either a string or an array of strings to check against.
+Any regex matches within the url regex can be inserted into a check using `$1` style placeholders. 
