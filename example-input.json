@@ -1,7 +1,10 @@
 {
     "checks": {
-        "//.*\\.([a-z]+)$": "$1",
-        "danb": ["Dan", "Brown"],
+        ".*\\.me": "Dan",
+        "danb": [
+            "Dan",
+            "Brown"
+        ],
         "//(.*?)\\.com": "welcome to $1"
     },
     "urls": [
