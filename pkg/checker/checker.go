@@ -8,21 +8,43 @@ import (
 	"sync"
 )
 
-type Check struct {
-	URL    string
-	Check  string
-	Passed bool
+type CheckedPage struct {
+	Path    string
+	Content string
+	Checks  []*Check
 }
 
-func Run(checkMap map[string][]*Check) {
-	var wg sync.WaitGroup
-	wg.Add(len(checkMap))
+type Check struct {
+	Needle         string
+	NeedleCount    int
+	OriginalNeedle string
+	Pass           bool
+}
 
-	for k, v := range checkMap {
-		go checkSite(k, v, &wg)
+// Run all tests against all pages
+func Run(list CheckList) {
+	var wg sync.WaitGroup
+	wg.Add(len(list))
+
+	for _, page := range list {
+		go checkSite(page.Path, page.Checks, &wg)
 	}
 
 	wg.Wait()
+}
+
+type CheckList []CheckedPage
+
+func (cl CheckList) PageCount() int {
+	return len(cl)
+}
+
+func (cl CheckList) CheckCount() int {
+	total := 0
+	for _, list := range cl {
+		total += len(list.Checks)
+	}
+	return total
 }
 
 func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
@@ -43,6 +65,6 @@ func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
 	}
 
 	for _, check := range checks {
-		check.Passed = bytes.Contains(html, []byte(check.Check))
+		check.Pass = bytes.Contains(html, []byte(check.Needle))
 	}
 }

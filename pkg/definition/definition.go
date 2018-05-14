@@ -11,6 +11,48 @@ import (
 	"github.com/ssddanbrown/spc/pkg/checker"
 )
 
+// Load the definition file into a map of checks
+func Load(args []string) checker.CheckList {
+	def := loadDefinition(args)
+
+	pages := checker.CheckList{}
+
+	for _, checkDef := range def.Checks.CheckDefinitions {
+		r, rErr := regexp.Compile(checkDef.URLRegex)
+		if rErr != nil {
+			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
+		}
+		for _, url := range def.URLs {
+			page := checker.CheckedPage{Path: url}
+
+			matches := r.FindStringSubmatch(url)
+			if len(matches) == 0 {
+				continue
+			}
+
+			for _, originalNeedle := range checkDef.ChecksStrings {
+				needle := originalNeedle
+				// Perform any applicable regex replaces in string
+				for i, submatch := range matches {
+					placeholder := fmt.Sprintf("$%d", i)
+					needle = strings.Replace(needle, placeholder, submatch, -1)
+				}
+
+				c := &checker.Check{
+					Needle:         needle,
+					OriginalNeedle: originalNeedle,
+					Pass:           false,
+				}
+				page.Checks = append(page.Checks, c)
+			}
+
+			pages = append(pages, page)
+		}
+
+	}
+	return pages
+}
+
 type checkDefinitionList struct {
 	CheckDefinitions []checkDefinition
 }
@@ -71,12 +113,14 @@ func loadDefinition(args []string) definition {
 	path := args[0]
 
 	if path == "" {
+		// Try loading in from StdIn
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeCharDevice) != 0 {
 			errorAndExit("No definition file provided")
 		}
 		defContent, err = ioutil.ReadAll(os.Stdin)
 	} else {
+		// Try loading in from file if path sensible length
 		if len(path) < 300 {
 			defContent, err = ioutil.ReadFile(path)
 		} else {
@@ -104,42 +148,4 @@ func loadDefinition(args []string) definition {
 func errorAndExit(m string) {
 	fmt.Println(m)
 	os.Exit(1)
-}
-
-// Load the definition file into a map of checks
-func Load(args []string) map[string][]*checker.Check {
-	def := loadDefinition(args)
-
-	checkMap := make(map[string][]*checker.Check)
-	checkCount := 0
-
-	for _, checkDef := range def.Checks.CheckDefinitions {
-		r, rErr := regexp.Compile(checkDef.URLRegex)
-		if rErr != nil {
-			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
-		}
-		for _, url := range def.URLs {
-			matches := r.FindStringSubmatch(url)
-			if len(matches) > 0 {
-				for _, checkStr := range checkDef.ChecksStrings {
-
-					// Perform any applicable regex replaces in string
-					for i, submatch := range matches {
-						placeholder := fmt.Sprintf("$%d", i)
-						checkStr = strings.Replace(checkStr, placeholder, submatch, -1)
-					}
-
-					c := checker.Check{
-						URL:    url,
-						Check:  checkStr,
-						Passed: false,
-					}
-					checkMap[url] = append(checkMap[url], &c)
-				}
-				checkCount++
-			}
-		}
-
-	}
-	return checkMap
 }

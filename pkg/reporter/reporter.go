@@ -8,7 +8,7 @@ import (
 
 // Reporter is a type that is able to report on the checking results
 type Reporter interface {
-	Report(map[string][]*checker.Check) bool
+	Report(checker.CheckList) bool
 }
 
 // GetDefault provides the app default result Reporter
@@ -18,19 +18,19 @@ func GetDefault() Reporter {
 
 type terminalReporter struct{}
 
-func (t terminalReporter) Report(checkMap map[string][]*checker.Check) bool {
+func (t terminalReporter) Report(checkMap checker.CheckList) bool {
 	// Print results
 	var passes int
 	var fails int
 
-	for url, checks := range checkMap {
-		fmt.Printf("\x1b[36m%s\x1b[0m\n", url)
-		for _, check := range checks {
-			if check.Passed {
-				fmt.Printf("\t\x1b[32m✔ [%s]\x1b[0m\n", check.Check)
+	for _, page := range checkMap {
+		fmt.Printf("\x1b[36m%s\x1b[0m\n", page.Path)
+		for _, check := range page.Checks {
+			if check.Pass {
+				fmt.Printf("\t\x1b[32m✔ [%s]\x1b[0m\n", check.Needle)
 				passes++
 			} else {
-				fmt.Printf("\t\x1b[31m✗ [%s]\x1b[0m\n", check.Check)
+				fmt.Printf("\t\x1b[31m✗ [%s]\x1b[0m\n", check.Needle)
 				fails++
 			}
 		}
