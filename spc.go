@@ -10,13 +10,9 @@ import (
 	"github.com/ssddanbrown/spc/pkg/reporter"
 )
 
-// type Results struct {
-// 	Pages []CheckedPage
-// 	Pass  bool
-// }
-
-// TODO - Improve struct/prop names
+// TODO - Add local file checks
 // TODO - Show URL's that weren't checked
+// TODO - Add negative file checks
 
 func main() {
 
