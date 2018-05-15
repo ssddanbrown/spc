@@ -17,21 +17,22 @@ func Load(args []string) checker.CheckList {
 
 	pages := checker.CheckList{}
 
-	for _, checkDef := range def.Checks.CheckDefinitions {
-		r, rErr := regexp.Compile(checkDef.URLRegex)
-		if rErr != nil {
-			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
-		}
-		for _, url := range def.URLs {
-			page := checker.CheckedPage{Path: url}
+	for _, url := range def.URLs {
+		page := checker.CheckedPage{Path: url}
+
+		for _, checkDef := range def.Checks.CheckDefinitions {
+			r, rErr := regexp.Compile(checkDef.URLRegex)
+			if rErr != nil {
+				errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
+			}
 
 			matches := r.FindStringSubmatch(url)
 			if len(matches) == 0 {
 				continue
 			}
 
-			for _, originalNeedle := range checkDef.ChecksStrings {
-				needle := originalNeedle
+			for _, ci := range checkDef.Checks {
+				needle := ci.Check
 				// Perform any applicable regex replaces in string
 				for i, submatch := range matches {
 					placeholder := fmt.Sprintf("$%d", i)
@@ -40,16 +41,18 @@ func Load(args []string) checker.CheckList {
 
 				c := &checker.Check{
 					Needle:         needle,
-					OriginalNeedle: originalNeedle,
+					OriginalNeedle: ci.Check,
 					Pass:           false,
+					NeedleCount:    ci.Count,
 				}
 				page.Checks = append(page.Checks, c)
 			}
 
-			pages = append(pages, page)
 		}
 
+		pages = append(pages, page)
 	}
+
 	return pages
 }
 
@@ -72,20 +75,32 @@ func (l *checkDefinitionList) UnmarshalJSON(data []byte) error {
 		cd.URLRegex = k
 
 		// If just a string add to checks
-		if cs, ok := v.(string); ok {
-			cd.ChecksStrings = append(cd.ChecksStrings, cs)
+		if needle, ok := v.(string); ok {
+			ci := checkItem{Check: needle, Count: -1}
+			cd.Checks = append(cd.Checks, ci)
+		}
+
+		// If check item object
+		if m, ok := v.(map[string]interface{}); ok {
+			ci, ok := createCheckItemFromMap(m)
+			fmt.Println(ci)
+			fmt.Println(ok)
+			if ci, ok := createCheckItemFromMap(m); ok {
+				cd.Checks = append(cd.Checks, ci)
+			}
 		}
 
 		// If an array of strings loop through and add the checks
-		if css, ok := v.([]interface{}); ok {
-			for _, s := range css {
-				if cs, ok := s.(string); ok {
-					cd.ChecksStrings = append(cd.ChecksStrings, cs)
+		if needles, ok := v.([]interface{}); ok {
+			for _, s := range needles {
+				if needle, ok := s.(string); ok {
+					ci := checkItem{Check: needle, Count: -1}
+					cd.Checks = append(cd.Checks, ci)
 				}
 			}
 		}
 
-		if len(cd.ChecksStrings) > 0 {
+		if len(cd.Checks) > 0 {
 			l.CheckDefinitions = append(l.CheckDefinitions, cd)
 		}
 	}
@@ -93,9 +108,37 @@ func (l *checkDefinitionList) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+func createCheckItemFromMap(m map[string]interface{}) (checkItem, bool) {
+	var result checkItem
+	ok := true
+
+	if checkVal, ok := m["check"]; ok {
+		if check, ok := checkVal.(string); ok {
+			result.Check = check
+		}
+	}
+	if !ok {
+		return result, false
+	}
+
+	if countVal, ok := m["count"]; ok {
+		if count, ok := countVal.(float64); ok {
+			fmt.Println("count", count, ok)
+			result.Count = int(count)
+		}
+	}
+
+	return result, ok
+}
+
 type checkDefinition struct {
-	URLRegex      string
-	ChecksStrings []string
+	URLRegex string
+	Checks   []checkItem
+}
+
+type checkItem struct {
+	Check string `json:"check"`
+	Count int    `json:"count"`
 }
 
 type definition struct {

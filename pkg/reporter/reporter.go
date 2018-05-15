@@ -26,11 +26,16 @@ func (t terminalReporter) Report(checkMap checker.CheckList) {
 	for _, page := range checkMap {
 		fmt.Printf("\x1b[36m%s\x1b[0m\n", page.Path)
 		for _, check := range page.Checks {
+			countStr := fmt.Sprintf("%d", check.NeedleCount)
+			if check.NeedleCount < 0 {
+				countStr = "1+"
+			}
+
 			if check.Pass {
-				fmt.Printf("\t\x1b[32m✔ [%s]\x1b[0m\n", check.Needle)
+				fmt.Printf("\t\x1b[32m✔ [%s] #%s\x1b[0m\n", check.Needle, countStr)
 				passes++
 			} else {
-				fmt.Printf("\t\x1b[31m✗ [%s]\x1b[0m\n", check.Needle)
+				fmt.Printf("\t\x1b[31m✗ [%s] #%s\x1b[0m\n", check.Needle, countStr)
 				fails++
 			}
 		}

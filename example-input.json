@@ -5,7 +5,14 @@
             "Dan",
             "Brown"
         ],
-        "//(.*?)\\.com": "welcome to $1"
+        "//(.*?)\\.com": [
+            "welcome to $1",
+            "Hello to $1"
+        ],
+        "dan": {
+            "check": "Latest",
+            "count": 2 
+        }
     },
     "urls": [
         "https://danb.me",

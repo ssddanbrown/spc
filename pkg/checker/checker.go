@@ -86,7 +86,13 @@ func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
 	}
 
 	for _, check := range checks {
-		check.Pass = bytes.Contains(html, []byte(check.Needle))
+		containCount := bytes.Count(html, []byte(check.Needle))
+		if check.NeedleCount < 0 {
+			check.Pass = containCount > 0
+			continue
+		}
+
+		check.Pass = containCount == check.NeedleCount
 	}
 
 }
