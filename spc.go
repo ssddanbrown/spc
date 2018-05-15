@@ -26,12 +26,10 @@ func main() {
 	checkList := definition.Load(args)
 	fmt.Printf("\n\x1b[34mChecking %d urls, %d checks\x1b[0m\n\n", checkList.PageCount(), checkList.CheckCount())
 
-	checker.Run(checkList)
+	success := checker.Run(checkList)
 
 	defaultReporter := reporter.GetDefault()
-
-	// TODO - Success status should not be the job of the reporter
-	success := defaultReporter.Report(checkList)
+	defaultReporter.Report(checkList)
 
 	if !success {
 		os.Exit(1)

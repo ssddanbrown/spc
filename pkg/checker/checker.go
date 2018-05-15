@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"sync"
 )
 
@@ -12,6 +13,7 @@ type CheckedPage struct {
 	Path    string
 	Content string
 	Checks  []*Check
+	Pass    bool
 }
 
 type Check struct {
@@ -22,7 +24,7 @@ type Check struct {
 }
 
 // Run all tests against all pages
-func Run(list CheckList) {
+func Run(list CheckList) bool {
 	var wg sync.WaitGroup
 	wg.Add(len(list))
 
@@ -31,6 +33,25 @@ func Run(list CheckList) {
 	}
 
 	wg.Wait()
+
+	// Get overall status
+	overallPass := true
+
+	for _, page := range list {
+		page.Pass = true
+		for _, check := range page.Checks {
+			if !check.Pass {
+				page.Pass = false
+				overallPass = false
+			}
+		}
+	}
+
+	sort.SliceStable(list, func(i, j int) bool {
+		return list[i].Path < list[j].Path
+	})
+
+	return overallPass
 }
 
 type CheckList []CheckedPage
@@ -67,4 +88,5 @@ func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
 	for _, check := range checks {
 		check.Pass = bytes.Contains(html, []byte(check.Needle))
 	}
+
 }

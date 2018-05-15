@@ -8,7 +8,7 @@ import (
 
 // Reporter is a type that is able to report on the checking results
 type Reporter interface {
-	Report(checker.CheckList) bool
+	Report(checker.CheckList)
 }
 
 // GetDefault provides the app default result Reporter
@@ -18,7 +18,7 @@ func GetDefault() Reporter {
 
 type terminalReporter struct{}
 
-func (t terminalReporter) Report(checkMap checker.CheckList) bool {
+func (t terminalReporter) Report(checkMap checker.CheckList) {
 	// Print results
 	var passes int
 	var fails int
@@ -42,9 +42,8 @@ func (t terminalReporter) Report(checkMap checker.CheckList) bool {
 
 	if fails > 0 {
 		fmt.Printf("\n\x1b[31m%s\x1b[0m\n", results)
-		return false
+		return
 	}
 
 	fmt.Printf("\n\x1b[32m%s\x1b[0m\n", results)
-	return true
 }
