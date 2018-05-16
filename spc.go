@@ -25,7 +25,7 @@ func main() {
 	success := checker.Run(checkList)
 
 	defaultReporter := reporter.GetDefault()
-	defaultReporter.Report(checkList)
+	defaultReporter.Report(checkList, os.Stdout)
 
 	if !success {
 		os.Exit(1)

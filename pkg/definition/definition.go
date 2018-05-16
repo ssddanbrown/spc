@@ -82,9 +82,6 @@ func (l *checkDefinitionList) UnmarshalJSON(data []byte) error {
 
 		// If check item object
 		if m, ok := v.(map[string]interface{}); ok {
-			ci, ok := createCheckItemFromMap(m)
-			fmt.Println(ci)
-			fmt.Println(ok)
 			if ci, ok := createCheckItemFromMap(m); ok {
 				cd.Checks = append(cd.Checks, ci)
 			}
@@ -123,7 +120,6 @@ func createCheckItemFromMap(m map[string]interface{}) (checkItem, bool) {
 
 	if countVal, ok := m["count"]; ok {
 		if count, ok := countVal.(float64); ok {
-			fmt.Println("count", count, ok)
 			result.Count = int(count)
 		}
 	}
