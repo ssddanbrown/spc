@@ -87,13 +87,23 @@ func (l *checkDefinitionList) UnmarshalJSON(data []byte) error {
 			}
 		}
 
-		// If an array of strings loop through and add the checks
-		if needles, ok := v.([]interface{}); ok {
-			for _, s := range needles {
-				if needle, ok := s.(string); ok {
+		// If an array
+		if arr, ok := v.([]interface{}); ok {
+			for _, item := range arr {
+
+				// Of check items
+				if m, ok := item.(map[string]interface{}); ok {
+					if ci, ok := createCheckItemFromMap(m); ok {
+						cd.Checks = append(cd.Checks, ci)
+					}
+				}
+
+				// Of strings
+				if needle, ok := item.(string); ok {
 					ci := checkItem{Check: needle, Count: -1}
 					cd.Checks = append(cd.Checks, ci)
 				}
+
 			}
 		}
 

@@ -9,10 +9,16 @@
             "welcome to $1",
             "Hello to $1"
         ],
-        "dan": {
-            "check": "Latest",
-            "count": 2 
-        }
+        "dan": [
+            {
+                "check": "Latest",
+                "count": 2
+            },
+            {
+                "check": "Posts",
+                "count": 1 
+            }
+        ]
     },
     "urls": [
         "https://danb.me",

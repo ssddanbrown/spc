@@ -12,7 +12,6 @@ import (
 
 // TODO - Add local file checks
 // TODO - Show URL's that weren't checked
-// TODO - Allow array of objects in definition checks
 
 func main() {
 
