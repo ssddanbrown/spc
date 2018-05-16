@@ -18,14 +18,23 @@
                 "check": "Posts",
                 "count": 1 
             }
+        ],
+        ".*\\.html": [
+            "Tree",
+            {
+                "check": "Dog",
+                "count": 2
+            }
         ]
     },
     "urls": [
         "https://danb.me",
         "https://example.com",
-        "https://github.com/ssddanbrown/haste"
+        "https://github.com/ssddanbrown/haste",
+        "https://google.com"
     ],
     "paths": [
-        "https://google.com"
+        "./testdata/page-*.html",
+        "/var/www/html/*.html"
     ]
 }

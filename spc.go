@@ -10,25 +10,28 @@ import (
 	"github.com/ssddanbrown/spc/pkg/reporter"
 )
 
-// TODO - Add local file checks
+// TODO - Add tests
+// TODO - Add help and version command
 // TODO - Show URL's that weren't checked
 
 func main() {
 
 	flag.Parse()
+
+	// Load definition
 	args := flag.Args()
-
 	checkList := definition.Load(args)
-	fmt.Printf("\n\x1b[34mChecking %d urls, %d checks\x1b[0m\n\n", checkList.PageCount(), checkList.CheckCount())
 
+	// Run checks
+	fmt.Printf("\n\x1b[34mChecking %d urls, %d checks\x1b[0m\n\n", checkList.PageCount(), checkList.CheckCount())
 	success := checker.Run(checkList)
 
+	// Report on the results
 	defaultReporter := reporter.GetDefault()
 	defaultReporter.Report(checkList, os.Stdout)
 
 	if !success {
 		os.Exit(1)
 	}
-
 	os.Exit(0)
 }

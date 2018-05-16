@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -13,48 +15,81 @@ import (
 
 // Load the definition file into a map of checks
 func Load(args []string) checker.CheckList {
-	def := loadDefinition(args)
+	def, loadType := loadDefinition(args)
 	def.Paths = append(def.Paths, def.URLs...)
+
+	basePath, err := os.Getwd()
+	if loadType == "path" {
+		basePath = path.Dir(args[0])
+	} else {
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
 
 	pages := checker.CheckList{}
 
-	for _, path := range def.Paths {
-		page := checker.CheckedPage{Path: path}
+	for _, pagePath := range def.Paths {
+		isHTTP := (strings.Index(pagePath, "http://") == 0 || strings.Index(pagePath, "https://") == 0)
 
-		for _, checkDef := range def.Checks.CheckDefinitions {
-			r, rErr := regexp.Compile(checkDef.URLRegex)
-			if rErr != nil {
-				errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
+		if !isHTTP {
+			fullPath := pagePath
+			if fullPath[0] != '/' {
+				fullPath = path.Join(basePath, fullPath)
 			}
 
-			matches := r.FindStringSubmatch(path)
-			if len(matches) == 0 {
-				continue
+			files, err := filepath.Glob(fullPath)
+			if err != nil {
+				errorAndExit(fmt.Sprintf("Bad file path or glob pattern (%s)", fullPath))
 			}
-
-			for _, ci := range checkDef.Checks {
-				needle := ci.Check
-				// Perform any applicable regex replaces in string
-				for i, submatch := range matches {
-					placeholder := fmt.Sprintf("$%d", i)
-					needle = strings.Replace(needle, placeholder, submatch, -1)
-				}
-
-				c := &checker.Check{
-					Needle:         needle,
-					OriginalNeedle: ci.Check,
-					Pass:           false,
-					NeedleCount:    ci.Count,
-				}
-				page.Checks = append(page.Checks, c)
+			for _, file := range files {
+				page := parsePath(file, def.Checks.CheckDefinitions)
+				pages = append(pages, page)
 			}
-
+			continue
 		}
 
+		page := parsePath(pagePath, def.Checks.CheckDefinitions)
 		pages = append(pages, page)
 	}
 
 	return pages
+}
+
+func parsePath(path string, checkDefs []checkDefinition) checker.CheckedPage {
+	page := checker.CheckedPage{Path: path}
+
+	for _, checkDef := range checkDefs {
+		r, rErr := regexp.Compile(checkDef.URLRegex)
+		if rErr != nil {
+			errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
+		}
+
+		matches := r.FindStringSubmatch(path)
+		if len(matches) == 0 {
+			continue
+		}
+
+		for _, ci := range checkDef.Checks {
+			needle := ci.Check
+			// Perform any applicable regex replaces in string
+			for i, submatch := range matches {
+				placeholder := fmt.Sprintf("$%d", i)
+				needle = strings.Replace(needle, placeholder, submatch, -1)
+			}
+
+			c := &checker.Check{
+				Needle:         needle,
+				OriginalNeedle: ci.Check,
+				Pass:           false,
+				NeedleCount:    ci.Count,
+			}
+			page.Checks = append(page.Checks, c)
+		}
+
+	}
+	return page
 }
 
 type checkDefinitionList struct {
@@ -154,9 +189,10 @@ type definition struct {
 	Paths  []string            `json:"paths"`
 }
 
-func loadDefinition(args []string) definition {
+func loadDefinition(args []string) (definition, string) {
 	var err error
 	var defContent []byte
+	var loadType string
 	if len(args) == 0 {
 		args = append(args, "")
 	}
@@ -170,10 +206,12 @@ func loadDefinition(args []string) definition {
 			errorAndExit("No definition file provided")
 		}
 		defContent, err = ioutil.ReadAll(os.Stdin)
+		loadType = "stdin"
 	} else {
 		// Try loading in from file if path sensible length
 		if len(path) < 300 {
 			defContent, err = ioutil.ReadFile(path)
+			loadType = "path"
 		} else {
 			defContent = []byte(path)
 		}
@@ -183,6 +221,7 @@ func loadDefinition(args []string) definition {
 		// Try using first argument as definition if json-looking
 		if os.IsNotExist(err) && path[0] == '{' {
 			defContent = []byte(path)
+			loadType = "inline"
 		} else {
 			errorAndExit("Error when reading definition\n" + err.Error())
 		}
@@ -193,7 +232,7 @@ func loadDefinition(args []string) definition {
 	if err != nil {
 		errorAndExit(err.Error())
 	}
-	return def
+	return def, loadType
 }
 
 func errorAndExit(m string) {

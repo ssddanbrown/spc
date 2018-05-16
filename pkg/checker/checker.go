@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 )
 
+// CheckedPage contains information about a single page that was checked
 type CheckedPage struct {
 	Path    string
 	Content string
@@ -16,6 +18,7 @@ type CheckedPage struct {
 	Pass    bool
 }
 
+// Check holds the details of a check
 type Check struct {
 	Needle         string
 	NeedleCount    int
@@ -29,7 +32,7 @@ func Run(list CheckList) bool {
 	wg.Add(len(list))
 
 	for _, page := range list {
-		go checkSite(page.Path, page.Checks, &wg)
+		go checkPage(page.Path, page.Checks, &wg)
 	}
 
 	wg.Wait()
@@ -54,12 +57,15 @@ func Run(list CheckList) bool {
 	return overallPass
 }
 
+// CheckList is a slice of CheckedPages
 type CheckList []CheckedPage
 
+// PageCount provides a count of the total number of pages checked
 func (cl CheckList) PageCount() int {
 	return len(cl)
 }
 
+// CheckCount provides a count of the total number of checks made
 func (cl CheckList) CheckCount() int {
 	total := 0
 	for _, list := range cl {
@@ -68,16 +74,16 @@ func (cl CheckList) CheckCount() int {
 	return total
 }
 
-func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
+func checkPage(loc string, checks []*Check, wg *sync.WaitGroup) {
 	defer wg.Done()
-	res, err := http.Get(url)
-	if err != nil {
-		// TODO - Add error message to check
-		fmt.Println(err.Error())
-		return
-	}
 
-	html, err := ioutil.ReadAll(res.Body)
+	var content []byte
+	var err error
+	if strings.Index(loc, "http://") == 0 || strings.Index(loc, "https://") == 0 {
+		content, err = getWebpage(loc)
+	} else {
+		content, err = ioutil.ReadFile(loc)
+	}
 
 	if err != nil {
 		// TODO - Add error message to check
@@ -86,7 +92,7 @@ func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
 	}
 
 	for _, check := range checks {
-		containCount := bytes.Count(html, []byte(check.Needle))
+		containCount := bytes.Count(content, []byte(check.Needle))
 		if check.NeedleCount < 0 {
 			check.Pass = containCount > 0
 			continue
@@ -95,4 +101,14 @@ func checkSite(url string, checks []*Check, wg *sync.WaitGroup) {
 		check.Pass = containCount == check.NeedleCount
 	}
 
+}
+
+func getWebpage(url string) ([]byte, error) {
+	res, err := http.Get(url)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+
+	return ioutil.ReadAll(res.Body)
 }
