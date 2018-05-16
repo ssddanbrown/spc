@@ -23,7 +23,7 @@ func main() {
 	checkList := definition.Load(args)
 
 	// Run checks
-	fmt.Printf("\n\x1b[34mChecking %d urls, %d checks\x1b[0m\n\n", checkList.PageCount(), checkList.CheckCount())
+	fmt.Printf("\n\x1b[34mChecking %d pages, %d checks\x1b[0m\n\n", checkList.PageCount(), checkList.CheckCount())
 	success := checker.Run(checkList)
 
 	// Report on the results

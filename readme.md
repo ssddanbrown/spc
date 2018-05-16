@@ -1,8 +1,8 @@
 # Simple Page Checker
 
-**This project is currently unstable and subject to change**
+**This project is currently unstable and subject to change. It also ironically has no tests yet**
 
-This is a simple go application to check live HTTP content against simple text checks.
+This is a simple go application to check live HTTP and local file content against simple text checks.
 
 ### Usage
 
@@ -33,7 +33,7 @@ The definition file is a json formatted file as the below example:
         "danb": ["Dan", "Brown"],
         "//(.*?)\\.com": "welcome to $1"
     },
-    "urls": [
+    "paths": [
         "https://danb.me",
         "https://example.com",
         "https://github.com/ssddanbrown/haste"
@@ -41,10 +41,21 @@ The definition file is a json formatted file as the below example:
 }
 ```
 
-The `checks` object keys are regex strings that will be checked against the URL. If the regex matches the URL the check content, provided as the value, will be search in the response content.  
+The `checks` object keys are regex strings that will be checked against the path. If the regex matches the path the check content, provided as the value, will be searched in the response content.  
 The checks can be either a string or an array of strings to check against.
 
-Any regex matches within the url regex can be inserted into a check using `$1` style placeholders.
+Alternatively a check can be defined as an object of the following format:
+
+```json
+{
+    "check": "Hello world",
+    "count": 2
+}
+```
+
+When a count is specified using the object format above the check will have to be found in the page content exactly that many times. Setting a negative value such as `-1` will require at mandate at least one match (Default behaviour). You can set a count of `0` to ensure the check value is not found on the page.
+
+Any regex matches within the path regex can be inserted into a check using `$1` style placeholders.
 
 ### Output
 
@@ -77,4 +88,4 @@ If you are using the container normally via the command line, The easier way to 
 cat example-input.json | docker run -i ssddanbrown/spc:latest
 ```
 
-
+If using via CI it's advised to specific a container version instead of using `latest`.
