@@ -24,5 +24,8 @@
         "https://danb.me",
         "https://example.com",
         "https://github.com/ssddanbrown/haste"
+    ],
+    "paths": [
+        "https://google.com"
     ]
 }

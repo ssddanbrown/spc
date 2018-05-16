@@ -14,11 +14,12 @@ import (
 // Load the definition file into a map of checks
 func Load(args []string) checker.CheckList {
 	def := loadDefinition(args)
+	def.Paths = append(def.Paths, def.URLs...)
 
 	pages := checker.CheckList{}
 
-	for _, url := range def.URLs {
-		page := checker.CheckedPage{Path: url}
+	for _, path := range def.Paths {
+		page := checker.CheckedPage{Path: path}
 
 		for _, checkDef := range def.Checks.CheckDefinitions {
 			r, rErr := regexp.Compile(checkDef.URLRegex)
@@ -26,7 +27,7 @@ func Load(args []string) checker.CheckList {
 				errorAndExit(fmt.Sprintf("Error with check regex [%s]:\n%s", checkDef.URLRegex, rErr.Error()))
 			}
 
-			matches := r.FindStringSubmatch(url)
+			matches := r.FindStringSubmatch(path)
 			if len(matches) == 0 {
 				continue
 			}
@@ -150,6 +151,7 @@ type checkItem struct {
 type definition struct {
 	Checks checkDefinitionList `json:"checks"`
 	URLs   []string            `json:"urls"`
+	Paths  []string            `json:"paths"`
 }
 
 func loadDefinition(args []string) definition {
